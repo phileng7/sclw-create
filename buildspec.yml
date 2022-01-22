@@ -1,0 +1,31 @@
+version: 0.2
+env:
+  variables:
+    AWS_REGION: sa-east-1
+    APPLICATION_NAME: sclw-create
+    ECR_REPOSITORY: 104665986367.dkr.ecr.sa-east-1.amazonaws.com
+    IMAGE_TAG: 0.0.1-SNAPSHOT
+    CONTAINER_NAME: SCLW-Create-Container
+phases: 
+  pre_build: 
+    commands: 
+    - echo Logging in to Amazon ECR.... 
+    - aws --version
+    - $(aws ecr get-login --no-include-email --region $AWS_REGION)   
+    - REPOSITORY_URI=$ECR_REPOSITORY/$APPLICATION_NAME
+  build: 
+    commands: 
+    - echo Build started on `date` 
+    - echo Building the Docker image...
+    - docker build -t $APPLICATION_NAME:$IMAGE_TAG .
+    - docker tag $APPLICATION_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG 
+  post_build: 
+    commands: 
+    - echo Build completed on `date` 
+    - echo pushing to repo
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+    - echo Writing image definitions file... 
+    - printf '[{"name":"'"$CONTAINER_NAME"'", "imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json    
+artifacts:
+  files:
+    - imagedefinitions.json
